@@ -71,11 +71,15 @@ def patch_qwen2_mlp():
     from transformers.models.qwen2 import modeling_qwen2
 
     original = modeling_qwen2.Qwen2MLP.forward
+    if getattr(original, "_soup_example_mlp", False):
+        return True
 
     def forward(self, x):
         act = getattr(getattr(self, "config", None), "hidden_act", "silu")
-        if act != "silu" or not x.is_cuda:
+        if act != "silu" or not x.is_cuda or x.dtype not in (torch.float16, torch.float32):
             return original(self, x)
         return self.down_proj(swiglu(self.gate_proj(x), self.up_proj(x)))
 
+    forward._soup_example_mlp = True
     modeling_qwen2.Qwen2MLP.forward = forward
+    return True

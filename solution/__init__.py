@@ -13,8 +13,22 @@ The rules in short (the README and the task statement have the full ones):
   settings and outputs; no other GPU, no background processes, no tricks with the measurement.
 """
 
-from .swiglu import patch_qwen2_mlp
+import sys
+
+APPLIED = {}
 
 
 def apply():
-    patch_qwen2_mlp()  # the example: works out of the box, does not count as your own kernel
+    from importlib import import_module
+
+    for name, module, function in (
+        ("rmsnorm", "rmsnorm", "patch_qwen2_rmsnorm"),
+        ("rope", "rope", "patch_qwen2_rope"),
+        ("example_mlp", "swiglu", "patch_qwen2_mlp"),
+    ):
+        try:
+            patch = getattr(import_module(f".{module}", __name__), function)
+            APPLIED[name] = patch() is not False
+        except (ImportError, AttributeError) as exc:
+            APPLIED[name] = False
+            print(f"[solution] {name} not applied: {exc}", file=sys.stderr)
