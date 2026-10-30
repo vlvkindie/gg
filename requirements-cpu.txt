@@ -1,0 +1,6 @@
+# Install torch from its CPU index first; see README.md.
+soup-cli==0.77.0
+pytest
+numpy
+pandas
+pyarrow
